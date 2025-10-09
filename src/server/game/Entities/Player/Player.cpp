@@ -29901,6 +29901,83 @@ void Player::SendShipmentCrafterUI(ObjectGuid guid, uint32 shipmentContainerID)
     SendDirectMessage(shipmentNpc.Write());
 }
 
+Position const notAllowPos[MAX_CLASSES] =
+{
+    {  },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ 2286.05f, -5324.9799f, 90.41f, 2.32949f },
+{ 4801.908f, 5224.41f, 797.0137f, 5.2997f },
+{ -966.132f, 4445.333f, 735.74f, 0.5568f },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ -838.92f, 4315.865f, 744.8577f, 5.8394f },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ -838.f, 4282.f, 746.39715f, 0.9307f },
+{ 3709.797f, 7110.2963f, 24.266f, 0.4595f },
+{ -854.198f, 4239.6f, 750.f, 1.244865f }
+};
+
+void Player::CheckClassHallAllowArea()
+{
+    if (!IsAlive())
+        return;
+
+    bool allowIn = false;
+    uint8 classMode = 0;
+    switch (GetAreaId())
+    {
+    case 7813:
+        classMode = CLASS_WARRIOR;
+        break;
+    case 7638:
+        classMode = CLASS_PALADIN;
+        break;
+    case 7877:
+        classMode = CLASS_HUNTER;
+        break;
+    case 8011:
+        classMode = CLASS_ROGUE;
+        break;
+    case 7834:
+        classMode = CLASS_PRIEST;
+        break;
+    case 7679:
+        classMode = CLASS_DEATH_KNIGHT;
+        break;
+    case 7752:
+    case 7753:
+        classMode = CLASS_SHAMAN;
+        break;
+    case 7879:
+        classMode = CLASS_MAGE;
+        break;
+    case 7875:
+        classMode = CLASS_WARLOCK;
+        break;
+    case 7903:
+        classMode = CLASS_MONK;
+        break;
+    case 7846:
+    case 8076:
+    case 8065:
+        classMode = CLASS_DRUID;
+        break;
+    case 8023:
+        classMode = CLASS_DEMON_HUNTER;
+        break;
+    default:
+        return;
+        break;
+    }
+    if (getClass() == classMode)
+        allowIn = true;
+
+    uint32 mapid = (classMode == CLASS_PALADIN) ? 0 : 1220;
+    if (!allowIn)
+        TeleportTo(mapid, notAllowPos[classMode].GetPositionX(), notAllowPos[classMode].GetPositionY(), notAllowPos[classMode].GetPositionZ(), notAllowPos[classMode].GetOrientation(), 0, 0);
+}
+
 void Player::SendMovementSetCollisionHeight(float height)
 {
     WorldPackets::Movement::MoveSetCollisionHeight setCollisionHeight;
