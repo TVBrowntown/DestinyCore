@@ -27592,6 +27592,53 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult/* 
         SendEquipError(msg, nullptr, nullptr, item->itemid);
 }
 
+void Player::ApplyOnItems(uint8 type, std::function<bool(Player*, Item*, uint8, uint8)>&& function)
+{
+    switch (type)
+    {
+    case 1:
+    {
+        for (uint32 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_START + GetInventorySlotCount(); i++)
+            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                if (!function(this, item, INVENTORY_SLOT_BAG_0, i))
+                    return;
+
+        for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+            if (Bag* bag = GetBagByPos(i))
+                for (uint32 j = 0; j < bag->GetBagSize(); ++j)
+                    if (Item* item = GetItemByPos(i, j))
+                        if (!function(this, item, i, j))
+                            return;
+        break;
+    }
+    case 2:
+    {
+        for (uint32 i = BANK_SLOT_ITEM_START; i < BANK_SLOT_ITEM_END; i++)
+            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                if (!function(this, item, INVENTORY_SLOT_BAG_0, i))
+                    return;
+
+        for (uint32 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
+            if (Bag* bag = GetBagByPos(i))
+                for (uint32 j = 0; j < bag->GetBagSize(); ++j)
+                    if (Item* item = GetItemByPos(i, j))
+                        if (!function(this, item, i, j))
+                            return;
+        break;
+    }
+    case 3:
+    {
+        for (uint32 i = REAGENT_SLOT_START; i < REAGENT_SLOT_END; ++i)
+            if (Item* item = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                if (!function(this, item, INVENTORY_SLOT_BAG_0, i))
+                    return;
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void Player::LearnSpellHighestRank(uint32 spellid)
 {
     LearnSpell(spellid, false);
