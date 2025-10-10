@@ -15775,6 +15775,7 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
         case TYPEID_UNIT:
             sScriptMgr->OnQuestAccept(this, questGiver->ToCreature(), quest);
             questGiver->ToCreature()->AI()->sQuestAccept(this, quest);
+            m_lastQuestGiverGUID = questGiver->GetGUID();
             break;
         case TYPEID_ITEM:
         case TYPEID_CONTAINER:
@@ -15801,6 +15802,7 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
         case TYPEID_GAMEOBJECT:
             sScriptMgr->OnQuestAccept(this, questGiver->ToGameObject(), quest);
             questGiver->ToGameObject()->AI()->QuestAccept(this, quest);
+            m_lastQuestGiverGUID = questGiver->GetGUID();
             break;
         default:
             break;
@@ -18309,6 +18311,11 @@ void Player::SendQuestGiverStatusMultiple()
     }
 
     GetSession()->SendPacket(response.Write());
+}
+
+WorldObject* Player::GetLastQuestGiver() const
+{
+    return ObjectAccessor::GetWorldObject(*this, m_lastQuestGiverGUID);
 }
 
 bool Player::HasPvPForcingQuest() const
