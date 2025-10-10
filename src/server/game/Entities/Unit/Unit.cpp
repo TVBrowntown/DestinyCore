@@ -11562,14 +11562,13 @@ void Unit::Kill(Unit* victim, bool durabilityLoss)
                 }
             }
 
-            // Generate loot before updating looter
-            if (creature)
-            {
-                Loot* loot = &creature->loot;
-
-                loot->clear();
-                if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
-                    loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode());
+        // Generate loot before updating looter
+        if (creature)
+        {
+            Loot* loot = &creature->loot;
+            loot->clear();
+            if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
+                loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode());
 
                 if (uint32 journalEncounterId = sObjectMgr->GetCreatureTemplateJournalId(creature->GetCreatureTemplate()->Entry))
                 {
@@ -11591,6 +11590,7 @@ void Unit::Kill(Unit* victim, bool durabilityLoss)
                     }
                 }
 
+            if (creature->GetLootMode() > 0)
                 loot->generateMoneyLoot(creature->GetCreatureTemplate()->mingold, creature->GetCreatureTemplate()->maxgold);
 
                 if (group)
