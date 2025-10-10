@@ -3112,6 +3112,12 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
     // ENDOF ULDUAR SPELLS
 
+    // summon-wind-rider
+    ApplySpellFix({ 65478 }, [](SpellInfo* spellInfo)
+        {
+            const_cast<SpellEffectInfo*>(spellInfo->GetEffect(EFFECT_0))->MiscValueB = 161;
+        });
+
     //
     // TRIAL OF THE CRUSADER SPELLS
     //
