@@ -1638,6 +1638,13 @@ void Spell::SelectImplicitCasterObjectTargets(SpellEffIndex effIndex, SpellImpli
             if (m_caster->IsVehicle())
                 target = m_caster->GetVehicleKit()->GetPassenger(targetType.GetTarget() - TARGET_UNIT_PASSENGER_0);
             break;
+        case TARGET_UNIT_CASTER_LOOT_RECIPIENTS:
+            if (Creature* casterCreature = m_caster->ToCreature())
+            {
+                if (Player* player = casterCreature->GetLootRecipient())
+                    AddUnitTarget(player, 1 << effIndex, checkIfValid);
+            }
+            return;
         default:
             break;
     }
