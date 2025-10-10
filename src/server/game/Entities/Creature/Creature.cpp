@@ -729,15 +729,6 @@ void Creature::Update(uint32 diff)
     }
 
     sScriptMgr->OnCreatureUpdate(this, diff);
-
-    if (!IsAlive())
-        if (GetMap()->Instanceable() && !IsPet())
-            if (GetMap()->GetDifficultyID() != GetSpawnMode() || GetMap()->IsNeedRespawn(m_respawnChallenge))
-            {
-                m_respawnChallenge = GetMap()->m_respawnChallenge;
-                Respawn(true);
-                AddDelayedEvent(2000, [=]()->void { UpdateAllStats(); });
-            }
 }
 
 void Creature::RegenerateMana()
