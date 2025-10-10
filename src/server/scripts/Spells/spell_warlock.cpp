@@ -3458,44 +3458,45 @@ public:
 };
 
 // Chaotic Energies - 77220
-class spell_warl_chaotic_energies : public SpellScriptLoader
+class spell_warl_chaotic_energies : public AuraScript
 {
-public:
-    spell_warl_chaotic_energies() : SpellScriptLoader("spell_warl_chaotic_energies") {}
+    PrepareAuraScript(spell_warl_chaotic_energies);
 
-    class spell_warl_chaotic_energies_AuraScript : public AuraScript
+    void CalcAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
     {
-        PrepareAuraScript(spell_warl_chaotic_energies_AuraScript);
+        amount = -1;
+    }
 
-        void CalcAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
-        {
-            amount = -1;
-        }
-
-        void HandleAbsorb(AuraEffect* aurEff, DamageInfo& dmgInfo, uint32& absorbAmount)
-        {
-            int32 absorb = 0;
-            if (Aura* aur = GetAura())
-                if (AuraEffect* absorbEffect = aur->GetEffect(EFFECT_1))
-                    absorb = std::rand() % absorbEffect->GetAmount() + 1;
-
-            aurEff->SetAmount(-1);
-            int32 damage = dmgInfo.GetDamage();
-            absorbAmount = ApplyPct(damage, absorb);
-        }
-
-        void Register() override
-        {
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_chaotic_energies_AuraScript::CalcAmount, EFFECT_2, SPELL_AURA_SCHOOL_ABSORB);
-            OnEffectAbsorb += AuraEffectAbsorbFn(spell_warl_chaotic_energies_AuraScript::HandleAbsorb, EFFECT_2);
-        }
-    };
-
-    AuraScript* GetAuraScript() const override
+    void HandleAbsorb(AuraEffect* aurEff, DamageInfo& dmgInfo, uint32& absorbAmount)
     {
-        return new spell_warl_chaotic_energies_AuraScript();
+        absorbAmount = 0;
+
+        Aura* aura = GetAura();
+        if (!aura)
+            return;
+
+        AuraEffect* absorbEffect = aura->GetEffect(EFFECT_1);
+        if (!absorbEffect)
+            return;
+
+        int32 amount = absorbEffect->GetAmount();
+        if (amount <= 0)
+            return;
+
+        int32 absorb = urand(1, amount);
+
+        aurEff->SetAmount(-1);
+        int32 damage = dmgInfo.GetDamage();
+        absorbAmount = ApplyPct(damage, absorb);
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_chaotic_energies::CalcAmount, EFFECT_2, SPELL_AURA_SCHOOL_ABSORB);
+        OnEffectAbsorb += AuraEffectAbsorbFn(spell_warl_chaotic_energies::HandleAbsorb, EFFECT_2);
     }
 };
+
 
 // Eradication - 196414
 class spell_warl_eradication : public SpellScriptLoader
