@@ -2076,6 +2076,32 @@ void AuraEffect::HandleAuraTransform(AuraApplication const* aurApp, uint8 mode, 
                     case 75531:
                         target->SetDisplayId(target->getGender() == GENDER_MALE ? 31654 : 31655);
                         break;
+                    // Suramar Masquerade
+                    case 202477:
+                        if (target->GetTypeId() != TYPEID_PLAYER)
+                            return;
+                        target->SetDisplayId(target->getGender() == GENDER_MALE ? 73503 : 66258);
+                        if (target->getClass() == CLASS_DRUID)
+                        {
+                            switch (target->GetShapeshiftForm())
+                            {
+                            case FORM_CAT_FORM:
+                            case FORM_TRAVEL_FORM:
+                            case FORM_BEAR_FORM:
+                            case FORM_DIRE_BEAR_FORM:
+                                target->SetDisplayId(61927);
+                                break;
+                            case FORM_FLIGHT_FORM_EPIC:
+                            case FORM_FLIGHT_FORM:
+                                target->SetDisplayId(64331);
+                                break;
+                            case FORM_MOONKIN_FORM:
+                            case FORM_AQUATIC_FORM:
+                            case FORM_TREE_OF_LIFE:
+                            default:
+                                break;
+                            }
+                        }
                     default:
                         break;
                 }
