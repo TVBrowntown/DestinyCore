@@ -113,6 +113,7 @@ void AddSC_boss_yu_lon();
 
 // Throne of Thunder
 void AddSC_boss_council_of_elders();
+void AddSC_boss_dark_animus();
 
 // Zones
 void AddSC_dread_wastes();
@@ -226,6 +227,7 @@ void AddPandariaScripts()
 
     // Throne of Thunder
     AddSC_boss_council_of_elders();
+    AddSC_boss_dark_animus();
 
     // Zones
     AddSC_dread_wastes();
