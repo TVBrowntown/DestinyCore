@@ -616,6 +616,24 @@ SpellAreaForQuestAreaMapBounds SpellMgr::GetSpellAreaForQuestAreaMapBounds(uint3
     return mSpellAreaForQuestAreaMap.equal_range(std::pair<uint32, uint32>(area_id, quest_id));
 }
 
+float SpellMgr::GetSpellBonusCoeffFromAP(uint32 spell_id) const
+{
+    auto itr = mSpellsApCoeffData.find(spell_id);
+    if (itr == mSpellsApCoeffData.end())
+        return 0;
+    else
+        return itr->second;
+}
+
+float SpellMgr::GetSpellBonusCoeffFromSP(uint32 spell_id) const
+{
+    auto itr = mSpellsSpCoeffData.find(spell_id);
+    if (itr == mSpellsSpCoeffData.end())
+        return 0;
+    else
+        return itr->second;
+}
+
 SpellOnLogRemoveAuraMap SpellMgr::GetOnLogRemoveAuras() const
 {
     return mSpellsOnLogRemoveAurasData;
@@ -2253,6 +2271,50 @@ void SpellMgr::LoadSpellAreas()
     } while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %u spell area requirements in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void SpellMgr::LoadSpellBonusData()
+{
+    uint32 oldMSTime = getMSTime();
+
+    mSpellsApCoeffData.clear();                                   // need for reload case
+    mSpellsSpCoeffData.clear();                                   // need for reload case
+
+    //                                                   0        1
+    QueryResult result = WorldDatabase.Query("SELECT spell_id, ap_coeff, sp_coeff from spell_bonus_data");
+
+    if (!result)
+    {
+        TC_LOG_INFO("server.loading", ">> Loaded 0 spell bonus data records. DB table `spell_bonus_data` is empty.");
+
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 spell_id = fields[0].GetUInt32();
+        float ap_coeff = fields[1].GetFloat();
+        float sp_coeff = fields[2].GetFloat();
+
+        // check if chain is made with valid first spell
+        SpellInfo const* spell = GetSpellInfo(spell_id);
+        if (!spell)
+        {
+            TC_LOG_ERROR("sql.sql", "spell_id %u in `spell_bonus_data` table could not be found in dbc, skipped.", spell_id);
+            continue;
+        }
+
+        if (ap_coeff)
+            mSpellsApCoeffData.emplace(spell_id, ap_coeff);
+        if (sp_coeff)
+            mSpellsSpCoeffData.emplace(spell_id, sp_coeff);
+        ++count;
+    } while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", ">> Loaded %u spell bonus data records in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
 void SpellMgr::LoadSpellOnLogRemoveAurasData()

@@ -1891,6 +1891,9 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading SpellInfo custom attributes...");
     sSpellMgr->LoadSpellInfoCustomAttributes();
 
+    TC_LOG_INFO("server.loading", "Loading custom SpellBonusData...");
+    sSpellMgr->LoadSpellBonusData();
+
     TC_LOG_INFO("server.loading", "Loading SpellOnLogRemoveAuras data...");
     sSpellMgr->LoadSpellOnLogRemoveAurasData();
 

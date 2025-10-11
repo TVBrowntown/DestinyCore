@@ -6789,9 +6789,9 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
         DoneAdvertisedBenefit += static_cast<Guardian const*>(this)->GetBonusDamage();
 
     // Check for table values
-    if (effect->BonusCoefficientFromAP > 0.0f)
+    if (effect->BonusCoefficientFromAP > 0.0f || sSpellMgr->GetSpellBonusCoeffFromAP(spellProto->Id))
     {
-        float ApCoeffMod = effect->BonusCoefficientFromAP;
+        float ApCoeffMod = sSpellMgr->GetSpellBonusCoeffFromAP(spellProto->Id) ? sSpellMgr->GetSpellBonusCoeffFromAP(spellProto->Id) : effect->BonusCoefficientFromAP;
         if (Player* modOwner = GetSpellModOwner())
         {
             ApCoeffMod *= 100.0f;
@@ -6806,7 +6806,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Default calculation
-    float coeff = effect->BonusCoefficient;
+    float coeff = sSpellMgr->GetSpellBonusCoeffFromSP(spellProto->Id) ? sSpellMgr->GetSpellBonusCoeffFromSP(spellProto->Id) : effect->BonusCoefficient;
     if (DoneAdvertisedBenefit)
     {
         if (Player* modOwner = GetSpellModOwner())

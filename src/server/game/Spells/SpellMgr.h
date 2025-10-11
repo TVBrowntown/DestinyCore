@@ -683,6 +683,8 @@ class TC_GAME_API SpellMgr
         SpellAreaForAuraMapBounds GetSpellAreaForAuraMapBounds(uint32 spell_id) const;
         SpellAreaForAreaMapBounds GetSpellAreaForAreaMapBounds(uint32 area_id) const;
         SpellAreaForQuestAreaMapBounds GetSpellAreaForQuestAreaMapBounds(uint32 area_id, uint32 quest_id) const;
+        float GetSpellBonusCoeffFromAP(uint32 spell_id) const;
+        float GetSpellBonusCoeffFromSP(uint32 spell_id) const;
         SpellOnLogRemoveAuraMap GetOnLogRemoveAuras() const;
 
         // SpellInfo object management
@@ -726,6 +728,7 @@ class TC_GAME_API SpellMgr
         void LoadPetLevelupSpellMap();
         void LoadPetDefaultSpells();
         void LoadSpellAreas();
+        void LoadSpellBonusData();
         void LoadSpellOnLogRemoveAurasData();
         void LoadSpellInfoStore();
         void UnloadSpellInfoStore();
@@ -765,6 +768,8 @@ class TC_GAME_API SpellMgr
         PetDefaultSpellsMap        mPetDefaultSpellsMap;           // only spells not listed in related mPetLevelupSpellMap entry
         SpellInfoMap               mSpellInfoMap;
         SpellTotemModelMap         mSpellTotemModel;
+        std::map<int32, float>     mSpellsApCoeffData;
+        std::map<int32, float>     mSpellsSpCoeffData;
         SpellOnLogRemoveAuraMap    mSpellsOnLogRemoveAurasData;
 };
 
