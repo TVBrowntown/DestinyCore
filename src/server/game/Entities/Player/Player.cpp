@@ -31178,3 +31178,250 @@ void Player::SendDisplayToast(uint32 entry, uint32 questId, uint32 count, Displa
         SendDirectMessage(displayToast.Write());
     }
 }
+
+void Player::GetLootFromCreature(Creature* creature, bool CheckDifficulty)
+{
+    //Gold
+    ModifyMoney(100000);
+
+    if (!GetMapId())
+        return;
+
+    if (roll_chance_i(1))
+        GetLegendItemLootFromCreature();
+
+    Loot* loot = &creature->loot;
+    loot->clear();
+    if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
+        loot->FillLoot(lootid, LootTemplates_Creature, this, false, false, creature->GetLootMode(), creature);
+
+    std::vector<ItemTemplate const*> stuffLoots;
+    uint8 mapDifficultyMask = GetMap()->GetEncounterDifficultyMask();
+    if (uint32 journalEncounterId = sObjectMgr->GetCreatureTemplateJournalId(creature->GetCreatureTemplate()->Entry))
+    {
+        if (auto items = sDB2Manager.GetJournalItemsByEncounter(journalEncounterId))
+        {
+            std::vector<JournalEncounterItemEntry const*> potentialItems;
+            for (JournalEncounterItemEntry const* item : *items)
+            {
+                if (CheckDifficulty)
+                {
+                    if (item->IsValidDifficultyMask(mapDifficultyMask) &&
+                        (sDB2Manager.HasItemContext(item->ItemID, loot->GetItemContext()) ||
+                            !sDB2Manager.HasItemContext(item->ItemID)))
+                        potentialItems.push_back(item);
+                }
+                else
+                    potentialItems.push_back(item);
+            }
+
+            for (JournalEncounterItemEntry const* item : potentialItems)
+            {
+                ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item->ItemID);
+                if (!itemTemplate)
+                    continue;
+
+                if (!itemTemplate->IsUsableByLootSpecialization(this, false))
+                    continue;
+
+                if (itemTemplate->GetInventoryType() != INVTYPE_NON_EQUIP && item->IsValidDifficultyMask(mapDifficultyMask))
+                    stuffLoots.push_back(itemTemplate);
+            }
+        }
+    }
+
+    if (stuffLoots.empty())
+        return;
+
+    ItemTemplate const* randomStuffItem = Trinity::Containers::SelectRandomContainerElement(stuffLoots);
+    if (!randomStuffItem)
+        return;
+
+    uint32 itemId = randomStuffItem->GetId();
+    ItemPosCountVec dest;
+
+    bool mailed = CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1) != EQUIP_ERR_OK;
+
+    uint8 _context = loot->GetItemContext();
+    //timewarped-badge
+    if (LFGDungeonsEntry const* dungeonEntry = sLFGMgr->GetPlayerLFGDungeonEntry(GetGUID()))
+        if (dungeonEntry->Flags & lfg::LfgFlags::LFG_FLAG_TIMEWALKER)
+            _context = ItemContext::TimeWalker;
+    if (_context == ItemContext::TimeWalker)//GetMap()->IsTimeWalking()
+        ModifyCurrency(CURRENCY_TYPE_TIMEWARPED_BADGE, 10);
+
+    std::vector<int32> bonusListIds = sDB2Manager.GetItemBonusTreeVector(itemId, _context);
+    bool isroll = false;
+    //taitan
+    if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(1487);
+    }
+    else if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(3475);
+    }
+    else if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(499);
+    }
+
+    if (mailed)
+        SendItemRetrievalMail(itemId, 1, GenerateItemRandomPropertyId(itemId), bonusListIds);
+    else
+        StoreNewItem(dest, itemId, true, GenerateItemRandomPropertyId(itemId), GuidSet(), 0, bonusListIds);
+
+    //Item* pItem = StoreNewItem(dest, itemId, true, GenerateItemRandomPropertyId(itemId), GuidSet(), 0, bonusListIds);
+    //SendNewItem(pItem, 1, true, false, true);
+
+    SendDisplayToast(itemId, 0, 1, DisplayToastMethod::DISPLAY_TOAST_METHOD_LOOT, ToastTypes::TOAST_TYPE_ITEM, isroll, mailed, bonusListIds);
+}
+
+uint32 LegendItems[] = { 132357,132365,132366,132367,132369,132374,132375,132376,132378,132379,132381,132393,132394,132406,132407,132409,132410,132411,132413,132436,132437,132441,132442,132443,132444,132445,132447,132448,132449,132450,132451,132452,132453,132454,132455,132456,132457,132458,132459,132460,132461,132466,132861,132863,132864,133800,133970,133971,133973,133974,133976,133977,137014,137015,137016,137017,137018,137019,137020,137021,137022,137023,137024,137025,137026,137027,137028,137029,137030,137031,137032,137033,137034,137035,137036,137037,137038,137039,137040,137041,137042,137043,137044,137045,137046,137047,137048,137049,137050,137051,137052,137053,137054,137055,137056,137057,137058,137059,137060,137061,137062,137063,137064,137065,137066,137067,137068,137069,137070,137071,137072,137073,137074,137075,137076,137077,137078,137079,137080,137081,137082,137083,137084,137085,137086,137087,137088,137089,137090,137091,137092,137094,137095,137096,137097,137098,137099,137100,137101,137102,137103,137104,137105,137107,137108,137109,137220,137223,137227,137276,137382,137616,138117,138140,138854,138879,138949,140846,141321,141353,143728,143732,144236,144239,144242,144244,144247,144249,144258,144259,144260,144273,144274,144275,144277,144279,144280,144281,144292,144293,144295,144303,144326,144340,144354,144355,144358,144361,144364,144369,144385,144432,144438,147294,147295,147296,147297,147298,147299,147300,147301,147302,147303,147304,147305,150936,151636,151639,151640,151641,151642,151643,151644,151646,151647,151649,151650,151782,151783,151784,151785,151786,151787,151788,151795,151796,151798,151799,151800,151801,151802,151803,151805,151807,151808,151809,151810,151811,151812,151813,151814,151815,151817,151818,151819,151821,151822,151823,151824,154879 };
+
+void Player::GetLegendItemLootFromCreature()
+{
+    if (getLevel() < 102 || getLevel() > 113)
+        return;
+
+    std::vector<uint32> l_LegendItems;
+    std::vector<ItemTemplate const*> stuffLoots;
+
+#define MakeVector(a) std::vector<uint32>(a, a + (sizeof(a) / sizeof(a[0])))
+    l_LegendItems = MakeVector(LegendItems);
+#undef MakeVector
+
+    for (auto it : l_LegendItems)
+    {
+        ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(it);
+        if (!itemTemplate)
+            continue;
+
+        if (!itemTemplate->IsUsableByLootSpecialization(this, false))
+            continue;
+
+        if (HasItemCount(itemTemplate->GetId(), 1))
+            continue;
+
+        if (itemTemplate->GetInventoryType() != INVTYPE_NON_EQUIP)
+            stuffLoots.push_back(itemTemplate);
+    }
+
+    if (stuffLoots.empty())
+        return;
+
+    ItemTemplate const* randomStuffItem = Trinity::Containers::SelectRandomContainerElement(stuffLoots);
+    if (!randomStuffItem)
+        return;
+
+    uint32 itemId = randomStuffItem->GetId();
+    ItemPosCountVec dest;
+
+    bool mailed = CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1) != EQUIP_ERR_OK;
+
+    std::vector<int32> bonusListIds;
+    bonusListIds.push_back(3630);
+    if (mailed)
+        SendItemRetrievalMail(itemId, 1, GenerateItemRandomPropertyId(itemId), bonusListIds);
+    else
+        StoreNewItem(dest, itemId, true, GenerateItemRandomPropertyId(itemId), GuidSet(), 0, bonusListIds);
+
+    SendDisplayToast(itemId, 0, 1, DisplayToastMethod::DISPLAY_TOAST_METHOD_LOOT, ToastTypes::TOAST_TYPE_ITEM, false, mailed, bonusListIds);
+}
+
+void Player::GetLootFromCreatureEncounterId(Creature* creature, uint32 encounterId)
+{
+    if (!GetMapId())
+        return;
+
+    //Gold
+    ModifyMoney(urand(100000, 250000));
+
+    if (roll_chance_i(1))
+        GetLegendItemLootFromCreature();
+
+    Loot* loot = &creature->loot;
+    loot->clear();
+    if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
+        loot->FillLoot(lootid, LootTemplates_Creature, this, false, false, creature->GetLootMode(), creature);
+
+    std::vector<ItemTemplate const*> stuffLoots;
+    uint8 mapDifficultyMask = GetMap()->GetEncounterDifficultyMask();
+
+    if (auto items = sDB2Manager.GetJournalItemsByEncounter(encounterId))
+    {
+        std::vector<JournalEncounterItemEntry const*> potentialItems;
+        for (JournalEncounterItemEntry const* item : *items)
+            // if (item->IsValidDifficultyMask(mapDifficultyMask) &&
+            //     (sDB2Manager.HasItemContext(item->ItemID, loot->GetItemContext()) ||
+           //          !sDB2Manager.HasItemContext(item->ItemID)))
+            potentialItems.push_back(item);
+        for (JournalEncounterItemEntry const* item : potentialItems)
+        {
+            ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item->ItemID);
+            if (!itemTemplate)
+                continue;
+
+            if (!itemTemplate->IsUsableByLootSpecialization(this, false))
+                continue;
+
+            if (!itemTemplate->IsUsableByLootSpecialization(this, false))
+                continue;
+
+            if (itemTemplate->GetInventoryType() != INVTYPE_NON_EQUIP && item->IsValidDifficultyMask(mapDifficultyMask))
+                stuffLoots.push_back(itemTemplate);
+        }
+    }
+
+    if (stuffLoots.empty())
+        return;
+
+    ItemTemplate const* randomStuffItem = Trinity::Containers::SelectRandomContainerElement(stuffLoots);
+    if (!randomStuffItem)
+        return;
+
+    uint32 itemId = randomStuffItem->GetId();
+    ItemPosCountVec dest;
+
+    bool mailed = CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1) != EQUIP_ERR_OK;
+
+    uint8 _context = loot->GetItemContext();
+    //timewarped-badge
+    if (LFGDungeonsEntry const* dungeonEntry = sLFGMgr->GetPlayerLFGDungeonEntry(GetGUID()))
+        if (dungeonEntry->Flags & lfg::LfgFlags::LFG_FLAG_TIMEWALKER)
+            _context = ItemContext::TimeWalker;
+    if (_context == ItemContext::TimeWalker)//GetMap()->IsTimeWalking()
+        ModifyCurrency(CURRENCY_TYPE_TIMEWARPED_BADGE, 10);
+
+    std::vector<int32> bonusListIds = sDB2Manager.GetItemBonusTreeVector(itemId, _context);
+    bool isroll = false;
+    //taitan
+    if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(1487);
+    }
+    else if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(3475);
+    }
+    else if (roll_chance_i(25))
+    {
+        isroll = true;
+        bonusListIds.push_back(499);
+    }
+
+    if (mailed)
+        SendItemRetrievalMail(itemId, 1, GenerateItemRandomPropertyId(itemId), bonusListIds);
+    else
+        StoreNewItem(dest, itemId, true, GenerateItemRandomPropertyId(itemId), GuidSet(), 0, bonusListIds);
+
+    //Item* pItem = StoreNewItem(dest, itemId, true, GenerateItemRandomPropertyId(itemId), GuidSet(), 0, bonusListIds);
+    //SendNewItem(pItem, 1, true, false, true);
+
+    SendDisplayToast(itemId, 0, 1, DisplayToastMethod::DISPLAY_TOAST_METHOD_LOOT, ToastTypes::TOAST_TYPE_ITEM, isroll, mailed, bonusListIds);
+}

@@ -2467,6 +2467,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void ShowNeutralPlayerFactionSelectUI();
         void SendDisplayToast(uint32 entry, uint32 questId, uint32 count, DisplayToastMethod method, ToastTypes type, bool bonusRoll, bool mailed, std::vector<int32> bonus = {});
 
+        void GetLootFromCreature(Creature* creature, bool CheckDifficulty = true);
+        void GetLegendItemLootFromCreature();
+        void GetLootFromCreatureEncounterId(Creature* creature, uint32 encounterId);
+
         void SetEffectiveLevelAndMaxItemLevel(uint32 effectiveLevel, uint32 maxItemLevel);
 
         void UpdateItemLevelAreaBasedScaling();
