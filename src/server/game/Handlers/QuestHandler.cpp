@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * This file is part of the DestinyCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -511,6 +510,20 @@ void WorldSession::HandleQuestConfirmAccept(WorldPackets::Quest::QuestConfirmAcc
 
             if (quest->GetSrcSpell() > 0)
                 _player->CastSpell(_player, quest->GetSrcSpell(), true);
+
+            if (WorldObject* source = ObjectAccessor::GetWorldObject(*_player, _player->GetGUID()))
+            {
+                if (source->HasQuestForPlayer(_player))
+                {
+                    uint32 textId = _player->GetGossipTextId(source);
+
+                    if (uint32 menuId = _player->PlayerTalkClass->GetGossipMenu().GetMenuId())
+                        textId = _player->GetGossipTextId(menuId, source);
+
+                    _player->PlayerTalkClass->GetQuestMenu().RemoveMenuItem(quest->GetQuestId());
+                    _player->PlayerTalkClass->SendGossipMenu(textId, source->GetGUID());
+                }
+            }
         }
     }
 

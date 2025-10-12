@@ -718,3 +718,38 @@ void WorldPackets::Quest::ChoiceResponse::Read()
     _worldPacket >> ChoiceID;
     _worldPacket >> ResponseID;
 }
+
+WorldPacket const* WorldPackets::Quest::QuestForceRemoved::Write()
+{
+    _worldPacket << uint32(QuestID);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Quest::QuestPoiUpdateResponse::Write()
+{
+    _worldPacket << static_cast<uint32>(TrackingUpdates.size());
+    for (auto const& v : TrackingUpdates)
+    {
+        _worldPacket << v.SpawnTrackingID;
+        _worldPacket << v.ObjectID;
+        _worldPacket.WriteBit(v.Visible);
+        _worldPacket.FlushBits();
+    }
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Quest::QuestUpdateCompleteBySpell::Write()
+{
+    _worldPacket << QuestID;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Quest::QuestUpdateFailed::Write()
+{
+    _worldPacket << QuestID;
+
+    return &_worldPacket;
+}
