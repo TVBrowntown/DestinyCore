@@ -753,3 +753,18 @@ WorldPacket const* WorldPackets::Quest::QuestUpdateFailed::Write()
 
     return &_worldPacket;
 }
+
+WorldPacket const* WorldPackets::Quest::AreaPoiUpdate::Write()
+{
+    _worldPacket << static_cast<uint32>(Pois.size());
+    for (auto const& v : Pois)
+    {
+        _worldPacket << v.LastUpdate;
+        _worldPacket << v.QuestID;
+        _worldPacket << v.Timer;
+        _worldPacket << v.VariableID;
+        _worldPacket << v.Value;
+    }
+
+    return &_worldPacket;
+}

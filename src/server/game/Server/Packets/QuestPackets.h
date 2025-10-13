@@ -682,6 +682,24 @@ namespace WorldPackets
             std::vector<ItemReward> ItemRewards;
         };
 
+        class AreaPoiUpdate final : public ServerPacket
+        {
+        public:
+            AreaPoiUpdate() : ServerPacket(SMSG_AREA_POI_UPDATE, 4) {}
+
+            WorldPacket const* Write() override;
+
+            std::vector<WorldQuestUpdateInfo> Pois;
+        };
+
+        class RequestAreaPoiUpdate final : public ClientPacket
+        {
+        public:
+            RequestAreaPoiUpdate(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_AREA_POI_UPDATE, std::move(packet)) {}
+
+            void Read() override {}
+        };
+
         struct PlayerChoiceResponseRewardEntry
         {
             WorldPackets::Item::ItemInstance Item;
