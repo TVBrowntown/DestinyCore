@@ -207,6 +207,41 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPackets::Quest::QuestG
             if (quest->GetSrcSpell() > 0)
                 _player->CastSpell(_player, quest->GetSrcSpell(), true);
 
+            if (WorldObject* source = ObjectAccessor::GetWorldObject(*_player, packet.QuestGiverGUID))
+            {
+                PlayerMenu* talkClass = _player->PlayerTalkClass;
+                if (!talkClass)
+                    return;
+
+                if (Creature* npc = source->ToCreature())
+                {
+                    _player->PrepareQuestMenu(npc->GetGUID());
+
+                    uint32 textId = _player->GetGossipTextId(npc);
+                    if (uint32 menuId = talkClass->GetGossipMenu().GetMenuId())
+                    {
+                        uint32 menuTextId = _player->GetGossipTextId(menuId, npc);
+                        if (menuTextId != 0)
+                            textId = menuTextId;
+                    }
+
+                    _player->SendPreparedQuest(npc);
+                    talkClass->SendGossipMenu(textId, npc->GetGUID());
+                }
+                else if (GameObject* go = source->ToGameObject())
+                {
+                    uint32 textId = _player->GetGossipTextId(go);
+
+                    if (go->ActivateToQuest(_player))
+                    {
+                        _player->PrepareQuestMenu(go->GetGUID());
+                        _player->SendPreparedQuest(go);
+                    }
+
+                    talkClass->SendGossipMenu(textId, go->GetGUID());
+                }
+            }
+
             return;
         }
     }
