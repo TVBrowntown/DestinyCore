@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * This file is part of the DestinyCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -50,6 +49,7 @@ enum HunterSpells
     SPELL_HUNTER_A_MURDER_OF_CROWS_2                = 206505,
     SPELL_HUNTER_A_MURDER_OF_CROWS_DAMAGE           = 131900,
     SPELL_HUNTER_AIMED_SHOT                         = 19434,
+    SPELL_HUNTER_GLYPH_OF_MISDIRECTION              = 56829,
     SPELL_HUNTER_ANIMAL_INSTINCTS                   = 204315,
     SPELL_HUNTER_ANIMAL_INSTINCTS_CHEETAH           = 204324,
     SPELL_HUNTER_ANIMAL_INSTINCTS_MONGOOSE          = 204333,
@@ -528,46 +528,66 @@ public:
 class spell_hun_misdirection : public SpellScriptLoader
 {
 public:
-    spell_hun_misdirection() : SpellScriptLoader("spell_hun_misdirection") { }
+    spell_hun_misdirection() : SpellScriptLoader("spell_hun_misdirection") {}
 
     class spell_hun_misdirection_AuraScript : public AuraScript
     {
         PrepareAuraScript(spell_hun_misdirection_AuraScript);
 
+        bool _hasGlyph;
         bool Validate(SpellInfo const* /*spellInfo*/) override
         {
             return ValidateSpellInfo({ SPELL_HUNTER_MISDIRECTION_PROC });
         }
 
+        void OnApply(AuraEffect const*  /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            if (!GetCaster())
+            {
+                _hasGlyph = false;
+                return;
+            }
+
+            _hasGlyph = false;
+
+            if (Player* _player = GetCaster()->ToPlayer())
+                if (Unit* target = GetTarget())
+                    if (Pet* pet = _player->GetPet())
+                        if (pet->GetGUID() == target->GetGUID())
+                            if (_player->HasAura(SPELL_HUNTER_GLYPH_OF_MISDIRECTION))
+                                _hasGlyph = true;
+        }
+
         void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
         {
-            if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_DEFAULT || GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_INTERRUPT)
+            if (!GetCaster())
                 return;
-                
-            if (!GetTarget()->HasAura(SPELL_HUNTER_MISDIRECTION_PROC))
-                GetTarget()->ResetRedirectThreat();
-        }
 
-        bool CheckProc(ProcEventInfo& /*eventInfo*/)
-        {
-            return GetTarget()->GetRedirectThreatTarget() != nullptr;
-        }
+            if (Player* _player = GetCaster()->ToPlayer())
+            {
+                if (!GetDuration())
+                {
+                    _player->ResetRedirectThreat();
 
-        void HandleProc(AuraEffect const* aurEff, ProcEventInfo& /*eventInfo*/)
-        {
-            PreventDefaultAction();
-            GetTarget()->CastSpell(GetTarget(), SPELL_HUNTER_MISDIRECTION_PROC, true, NULL, aurEff);
+                    if (_hasGlyph)
+                    {
+                        if (_player->GetSpellHistory()->HasCooldown(SPELL_HUNTER_MISDIRECTION))
+                            _player->GetSpellHistory()->ResetCooldown(SPELL_HUNTER_MISDIRECTION);
+                        if (_player->GetSpellHistory()->HasCooldown(SPELL_HUNTER_MISDIRECTION_PROC))
+                            _player->GetSpellHistory()->ResetCooldown(SPELL_HUNTER_MISDIRECTION_PROC);
+                    }
+                }
+            }
         }
 
         void Register() override
         {
-            AfterEffectRemove += AuraEffectRemoveFn(spell_hun_misdirection_AuraScript::OnRemove, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-            DoCheckProc += AuraCheckProcFn(spell_hun_misdirection_AuraScript::CheckProc);
-            OnEffectProc += AuraEffectProcFn(spell_hun_misdirection_AuraScript::HandleProc, EFFECT_1, SPELL_AURA_DUMMY);
+            AfterEffectApply += AuraEffectApplyFn(spell_hun_misdirection_AuraScript::OnApply, EFFECT_1, SPELL_AURA_MOD_SCALE, AURA_EFFECT_HANDLE_REAL);
+            AfterEffectRemove += AuraEffectRemoveFn(spell_hun_misdirection_AuraScript::OnRemove, EFFECT_1, SPELL_AURA_MOD_SCALE, AURA_EFFECT_HANDLE_REAL);
         }
     };
 
-    AuraScript* GetAuraScript() const override
+    AuraScript* GetAuraScript() const
     {
         return new spell_hun_misdirection_AuraScript();
     }
@@ -577,7 +597,7 @@ public:
 class spell_hun_misdirection_proc : public SpellScriptLoader
 {
 public:
-    spell_hun_misdirection_proc() : SpellScriptLoader("spell_hun_misdirection_proc") { }
+    spell_hun_misdirection_proc() : SpellScriptLoader("spell_hun_misdirection_proc") {}
 
     class spell_hun_misdirection_proc_AuraScript : public AuraScript
     {
