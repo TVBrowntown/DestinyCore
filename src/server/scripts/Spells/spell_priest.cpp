@@ -1506,50 +1506,47 @@ class spell_pri_prayer_of_mending_heal : public SpellScriptLoader
 // 139 - Renew
 class spell_pri_renew : public SpellScriptLoader
 {
-    public:
-        spell_pri_renew() : SpellScriptLoader("spell_pri_renew") { }
+public:
+    spell_pri_renew() : SpellScriptLoader("spell_pri_renew") {}
 
-        class spell_pri_renew_AuraScript : public AuraScript
+    class spell_pri_renew_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_pri_renew_AuraScript);
+
+        bool Load() override
         {
-            PrepareAuraScript(spell_pri_renew_AuraScript);
+            return GetCaster() && GetCaster()->GetTypeId() == TYPEID_PLAYER;
+        }
 
-            bool Validate(SpellInfo const* /*spellInfo*/) override
+        void HandleApplyEffect(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
+        {
+            if (Unit* caster = GetCaster())
             {
-                if (!sSpellMgr->GetSpellInfo(SPELL_PRIEST_DIVINE_TOUCH))
-                    return false;
-                return true;
-            }
+                // Reduse the GCD of Holy Word: Sanctify by 2 seconds
+                if (caster->GetSpellHistory()->HasCooldown(SPELL_PRIEST_HOLY_WORD_SANCTIFY))
+                    caster->GetSpellHistory()->ModifyCooldown(SPELL_PRIEST_HOLY_WORD_SANCTIFY, -2 * IN_MILLISECONDS);
 
-            bool Load() override
-            {
-                return GetCaster() && GetCaster()->GetTypeId() == TYPEID_PLAYER;
-            }
-
-            void HandleApplyEffect(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
-            {
-                if (Unit* caster = GetCaster())
+                // Divine Touch
+                if (AuraEffect const* empoweredRenewAurEff = caster->GetDummyAuraEffect(SPELLFAMILY_PRIEST, PRIEST_ICON_ID_DIVINE_TOUCH_TALENT, EFFECT_0))
                 {
-                    // Divine Touch
-                    if (AuraEffect const* empoweredRenewAurEff = caster->GetDummyAuraEffect(SPELLFAMILY_PRIEST, PRIEST_ICON_ID_DIVINE_TOUCH_TALENT, EFFECT_0))
-                    {
-                        uint32 heal = caster->SpellHealingBonusDone(GetTarget(), GetSpellInfo(), aurEff->GetAmount(), DOT, aurEff->GetSpellEffectInfo());
-                        heal = GetTarget()->SpellHealingBonusTaken(caster, GetSpellInfo(), heal, DOT, aurEff->GetSpellEffectInfo());
-                        int32 basepoints0 = CalculatePct(int32(heal) * aurEff->GetTotalTicks(), empoweredRenewAurEff->GetAmount());
-                        caster->CastCustomSpell(GetTarget(), SPELL_PRIEST_DIVINE_TOUCH, &basepoints0, NULL, NULL, true, NULL, aurEff);
-                    }
+                    uint32 heal = caster->SpellHealingBonusDone(GetTarget(), GetSpellInfo(), aurEff->GetAmount(), DOT, aurEff->GetSpellEffectInfo());
+                    heal = GetTarget()->SpellHealingBonusTaken(caster, GetSpellInfo(), heal, DOT, aurEff->GetSpellEffectInfo());
+                    int32 basepoints0 = CalculatePct(int32(heal) * aurEff->GetTotalTicks(), empoweredRenewAurEff->GetAmount());
+                    caster->CastCustomSpell(GetTarget(), SPELL_PRIEST_DIVINE_TOUCH, &basepoints0, nullptr, nullptr, true, nullptr, aurEff);
                 }
             }
-
-            void Register() override
-            {
-                OnEffectApply += AuraEffectApplyFn(spell_pri_renew_AuraScript::HandleApplyEffect, EFFECT_0, SPELL_AURA_PERIODIC_HEAL, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
-            }
-        };
-
-        AuraScript* GetAuraScript() const override
-        {
-            return new spell_pri_renew_AuraScript();
         }
+
+        void Register() override
+        {
+            OnEffectApply += AuraEffectApplyFn(spell_pri_renew_AuraScript::HandleApplyEffect, EFFECT_0, SPELL_AURA_PERIODIC_HEAL, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        }
+    };
+
+    AuraScript* GetAuraScript() const override
+    {
+        return new spell_pri_renew_AuraScript();
+    }
 };
 
 // 32379 - Shadow Word Death
