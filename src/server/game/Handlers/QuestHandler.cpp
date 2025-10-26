@@ -748,11 +748,15 @@ void WorldSession::HandleQueryQuestRewards(WorldPackets::Quest::QueryQuestReward
 
 void WorldSession::HandleRequestAreaPoiUpdate(WorldPackets::Quest::RequestAreaPoiUpdate& packet)
 {
+    TC_LOG_DEBUG("network", "HandleRequestAreaPoiUpdate called for player %s", GetPlayer()->GetName().c_str());
+
     WorldPackets::Quest::AreaPoiUpdate response;
     bool needSend = false;
 
     auto addPoi = [&](int32 lastUpdate, uint32 questId, uint32 timer, int32 variableId, int32 value)
         {
+            TC_LOG_DEBUG("network", "Adding POI: lastUpdate=%d, questId=%u, timer=%u, variableId=%d, value=%d",
+                lastUpdate, questId, timer, variableId, value);
             response.Pois.push_back({ lastUpdate, questId, timer, variableId, value });
             needSend = true;
         };
@@ -856,7 +860,14 @@ void WorldSession::HandleRequestAreaPoiUpdate(WorldPackets::Quest::RequestAreaPo
     addInvasionPoi(127, 49097, 5369);
 
     if (needSend)
+    {
+        TC_LOG_DEBUG("network", "Sending %u POIs to player", response.Pois.size());
         SendPacket(response.Write());
+    }
+    else
+    {
+        TC_LOG_DEBUG("network", "No POIs to send");
+    }
 }
 
 void WorldSession::HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceResponse& choiceResponse)
