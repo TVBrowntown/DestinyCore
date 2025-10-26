@@ -805,32 +805,33 @@ public:
     }
 };
 
-/// Updated 4.3.4
+/// 1464 Slam
 class spell_warr_slam : public SpellScriptLoader
 {
 public:
-    spell_warr_slam() : SpellScriptLoader("spell_warr_slam") { }
+    spell_warr_slam() : SpellScriptLoader("spell_warr_slam") {}
 
     class spell_warr_slam_SpellScript : public SpellScript
     {
         PrepareSpellScript(spell_warr_slam_SpellScript);
 
-        bool Validate(SpellInfo const* /*spellInfo*/) override
+        enum eSpells
         {
-            if (!sSpellMgr->GetSpellInfo(SPELL_WARRIOR_SLAM))
-                return false;
-            return true;
-        }
+            WeightedBlade = 253383
+        };
 
-        void HandleDummy(SpellEffIndex /*effIndex*/)
+        void HandleAfterCast()
         {
-            if (GetHitUnit())
-                GetCaster()->CastCustomSpell(SPELL_WARRIOR_SLAM, SPELLVALUE_BASE_POINT0, GetEffectValue(), GetHitUnit(), TRIGGERED_FULL_MASK);
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+
+            caster->RemoveAura(eSpells::WeightedBlade);
         }
 
         void Register() override
         {
-            OnEffectHitTarget += SpellEffectFn(spell_warr_slam_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+            AfterCast += SpellCastFn(spell_warr_slam_SpellScript::HandleAfterCast);
         }
     };
 
