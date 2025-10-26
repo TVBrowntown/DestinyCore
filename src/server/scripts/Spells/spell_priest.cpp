@@ -757,62 +757,109 @@ class spell_pri_circle_of_healing : public SpellScriptLoader
         }
 };
 
-// 527 - Dispel magic
-class spell_pri_dispel_magic : public SpellScriptLoader
+// 527 - Purify
+class spell_pri_purify : public SpellScriptLoader
 {
 public:
-    spell_pri_dispel_magic() : SpellScriptLoader("spell_pri_dispel_magic") { }
+    spell_pri_purify() : SpellScriptLoader("spell_pri_purify") {}
 
-    class spell_pri_dispel_magic_SpellScript : public SpellScript
+    class spell_pri_purify_SpellScript : public SpellScript
     {
-        PrepareSpellScript(spell_pri_dispel_magic_SpellScript);
+        PrepareSpellScript(spell_pri_purify_SpellScript);
 
-        bool Validate(SpellInfo const* /*spellInfo*/) override
+        enum Spells
         {
-            if (!sSpellMgr->GetSpellInfo(SPELL_PRIEST_ABSOLUTION))
-                return false;
-            if (!sSpellMgr->GetSpellInfo(SPELL_PRIEST_GLYPH_OF_DISPEL_MAGIC_HEAL))
-                return false;
-            if (!sSpellMgr->GetSpellInfo(SPELL_PRIEST_GLYPH_OF_DISPEL_MAGIC))
-                return false;
-            return true;
-        }
+            Purify = 527,
+            PurifiedResolve = 196439,
+            PurifiedResolveBuff = 196440,
+            SpiritualCleansing = 213654
+        };
 
-        SpellCastResult CheckCast()
+        SpellCastResult CheckCleansing()
         {
             Unit* caster = GetCaster();
             Unit* target = GetExplTargetUnit();
+            if (!caster || !target)
+                return SPELL_CAST_OK;
 
-            if (!target || (!caster->HasAura(SPELL_PRIEST_ABSOLUTION) && caster != target && target->IsFriendlyTo(caster)))
-                return SPELL_FAILED_BAD_TARGETS;
+            DispelChargesList dispelList;
+            SpellInfo const* spellInfo = GetSpellInfo();
+            if (!spellInfo)
+                return SPELL_FAILED_ERROR;
+
+            for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            {
+                SpellEffectInfo const* effect = spellInfo->GetEffect(i);
+                if (!effect || !effect->IsEffect())
+                    continue;
+
+                uint32 dispelType = effect->MiscValue;
+                uint32 dispelMask = spellInfo->GetDispelMask(DispelType(dispelType));
+
+                if (spellInfo->Id == Purify)
+                    target->GetDispellableAuraList(caster, dispelMask, dispelList);
+            }
+
+            if (dispelList.empty())
+                return SPELL_FAILED_NOTHING_TO_DISPEL;
+
             return SPELL_CAST_OK;
         }
 
-        void AfterEffectHit(SpellEffIndex /*effIndex*/)
+        void HandleCast()
         {
-            if (GetHitUnit()->IsFriendlyTo(GetCaster()))
+            Unit* caster = GetCaster();
+            Unit* target = GetExplTargetUnit();
+            if (!caster || !target)
+                return;
+
+            Player* player = caster->ToPlayer();
+            if (!player)
+                return;
+
+            if (player->HasAura(PurifiedResolve))
             {
-                GetCaster()->CastSpell(GetHitUnit(), SPELL_PRIEST_DISPEL_MAGIC_FRIENDLY, true);
-                if (AuraEffect const* aurEff = GetHitUnit()->GetAuraEffect(SPELL_PRIEST_GLYPH_OF_DISPEL_MAGIC, EFFECT_0))
-                {
-                    int32 heal = GetHitUnit()->CountPctFromMaxHealth(aurEff->GetAmount());
-                    GetCaster()->CastCustomSpell(SPELL_PRIEST_GLYPH_OF_DISPEL_MAGIC_HEAL, SPELLVALUE_BASE_POINT0, heal, GetHitUnit());
-                }
+                SpellInfo const* purifiedInfo = sSpellMgr->GetSpellInfo(PurifiedResolve);
+                if (!purifiedInfo)
+                    return;
+
+                SpellEffectInfo const* effect = purifiedInfo->GetEffect(EFFECT_0);
+                if (!effect)
+                    return;
+
+                int32 absorb = CalculatePct(target->GetMaxHealth(), effect->BasePoints);
+                player->CastCustomSpell(target, PurifiedResolveBuff, &absorb, nullptr, nullptr, true);
             }
-            else
-                GetCaster()->CastSpell(GetHitUnit(), SPELL_PRIEST_DISPEL_MAGIC_HOSTILE, true);
+        }
+
+        void HandleAfterCast()
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+
+            Player* player = caster->ToPlayer();
+            SpellInfo const* spellInfo = GetSpellInfo();
+            if (!player || !spellInfo)
+                return;
+
+            if (player->HasAura(SpiritualCleansing) && player->GetSpellHistory()->HasCooldown(spellInfo->Id))
+            {
+                player->GetSpellHistory()->ModifyCooldown(spellInfo->Id, -int32(8 * IN_MILLISECONDS));
+            }
         }
 
         void Register() override
         {
-            OnCheckCast += SpellCheckCastFn(spell_pri_dispel_magic_SpellScript::CheckCast);
-            OnEffectHitTarget += SpellEffectFn(spell_pri_dispel_magic_SpellScript::AfterEffectHit, EFFECT_0, SPELL_EFFECT_DUMMY);
+            OnCheckCast += SpellCheckCastFn(spell_pri_purify_SpellScript::CheckCleansing);
+            OnCast += SpellCastFn(spell_pri_purify_SpellScript::HandleCast);
+            AfterCast += SpellCastFn(spell_pri_purify_SpellScript::HandleAfterCast);
         }
     };
 
     SpellScript* GetSpellScript() const override
     {
-        return new spell_pri_dispel_magic_SpellScript();
+        return new spell_pri_purify_SpellScript();
     }
 };
 
@@ -3048,7 +3095,7 @@ void AddSC_priest_spell_scripts()
     new spell_pri_focused_will();
     new spell_pri_angelic_feather();
     new spell_pri_circle_of_healing();
-    new spell_pri_dispel_magic();
+    new spell_pri_purify();
     new spell_pri_divine_aegis();
     new spell_pri_divine_hymn();
     new spell_pri_fade();
