@@ -19,7 +19,6 @@
 #include <MoveSplineInit.h>
 #include "GameObject.h"
 #include <SpellMgr.h>
-#include <effects.h>
 
 enum Spells
 {
